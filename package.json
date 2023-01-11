@@ -16,8 +16,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "might-pipe.helloWorld",
-        "title": "Hello World"
+        "command": "might-pipe.execute_commmand",
+        "title": "Execute command"
       }
     ]
   },

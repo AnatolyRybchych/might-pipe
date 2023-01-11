@@ -1,26 +1,50 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
+import childProcess = require('child_process');
+import { TextDecoder, TextEncoder } from 'util';
+
+function executeCommmand():Promise<void>{
+	return new Promise(()=>{
+		const textEditor = vscode.window.activeTextEditor;
+		const decoderUtf8 = new TextDecoder(); 
+		const showErrorMessage = vscode.window.showErrorMessage;
+		const outputChannel = vscode.window.createOutputChannel("might-pipe");
+
+		if(!textEditor){
+			return;
+		}
+
+		textEditor.edit((editBuffer)=>{
+			textEditor.selections.forEach((selection)=>{
+				const text = textEditor.document.getText(selection).trim();
+
+				if(text === ""){
+					return;
+				}
+				outputChannel.show(true);
+				outputChannel.append(`$${text}\n\n`);
+				try {
+					const proc = childProcess.execSync(text);
+					const procOutput = decoderUtf8.decode(proc.buffer).trim();
+
+					editBuffer.replace(selection, procOutput);
+
+					outputChannel.append(`${procOutput}\n\n`);
+
+				} catch (error) {
+					showErrorMessage(`Feiled execution "${text}"`);
+					outputChannel.append(`${error}\n\n`);
+				}
+			});
+		});
+	});
+}
+
 export function activate(context: vscode.ExtensionContext) {
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "might-pipe" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('might-pipe.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from might_pipe!');
-	});
+	let disposable = vscode.commands.registerCommand('might-pipe.execute_commmand', executeCommmand);
 
 	context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}
