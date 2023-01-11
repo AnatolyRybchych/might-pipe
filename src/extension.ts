@@ -10,15 +10,19 @@ function nCommands(n:number):string{
 function handleExecuteCommand(
 	textEditor:vscode.TextEditor,
 	onSuccess:(selection:vscode.Selection, command:string, stdout:string) => void,
-	onError:(selection:vscode.Selection, command:string, stderr:string) => void
+	onError:(selection:vscode.Selection, command:string, stderr:string) => void,
+	preprocess:(command:string)=>string = (cmd) => cmd
 ):void{
 	const decoderUtf8 = new TextDecoder(); 
 
 	textEditor.selections.forEach((selection)=>{
-		const command = textEditor.document.getText(selection).trim();
+		let command = textEditor.document.getText(selection).trim();
 
 		if(command === ""){
 			return;
+		}
+		else{
+			command = preprocess(command);
 		}
 		
 		try {
@@ -30,32 +34,29 @@ function handleExecuteCommand(
 			onError(selection, command, `${error}`);
 		}
 	});
-	
 }
 
 function executeCommmand():void{
 	const textEditor = vscode.window.activeTextEditor;
 	const outputChannel = vscode.window.createOutputChannel("might-pipe");
-	const showErrorMessage = vscode.window.showErrorMessage;
-	const showInformationMessage = vscode.window.showInformationMessage;
 
 	if(!textEditor){
 		return;
 	}
 
 	textEditor.edit((editBuffer)=>{
-		showInformationMessage(`Executing ${nCommands(textEditor.selections.length)}`);
+		vscode.window.showInformationMessage(`Executing ${nCommands(textEditor.selections.length)}`);
 		outputChannel.show(true);
 
 		handleExecuteCommand(
 			textEditor,
 			(selection, command, stdout) =>{
-				outputChannel.append(`$${command}\n\n${stdout}\n\n`);
+				outputChannel.append(`$${command}\n${stdout}\n\n`);
 				editBuffer.replace(selection, stdout);
 			},
 			(_selection, command, stderr) => {
-				outputChannel.append(`$${command}\n\n${stderr}\n\n`);
-				showErrorMessage(`Feiled execution "${command}"`);
+				outputChannel.append(`$${command}\n${stderr}\n\n`);
+				vscode.window.showErrorMessage(`Feiled execution "${command}"`);
 			}
 		);
 	});
@@ -64,14 +65,12 @@ function executeCommmand():void{
 function runCommand():void{
 	const textEditor = vscode.window.activeTextEditor;
 	const outputChannel = vscode.window.createOutputChannel("might-pipe");
-	const showErrorMessage = vscode.window.showErrorMessage;
-	const showInformationMessage = vscode.window.showInformationMessage;
 
 	if(!textEditor){
 		return;
 	}
 
-	showInformationMessage(`Running ${nCommands(textEditor.selections.length)}`);
+	vscode.window.showInformationMessage(`Running ${nCommands(textEditor.selections.length)}`);
 	outputChannel.show(true);
 
 	handleExecuteCommand(
@@ -81,9 +80,43 @@ function runCommand():void{
 		},
 		(_selection, command, stderr) => {
 			outputChannel.append(`$${command}\n${stderr}\n\n`);
-			showErrorMessage(`Feiled execution "${command}"`);
+			vscode.window.showErrorMessage(`Feiled execution "${command}"`);
 		}
 	);
+}
+
+function pipeCommand():void{
+	vscode.window.showInputBox({
+		title: "Pipe to application:",
+	}).then((appToPipe)=>{
+		if(!appToPipe){
+			return;
+		}
+		const textEditor = vscode.window.activeTextEditor;
+		const outputChannel = vscode.window.createOutputChannel("might-pipe");
+
+		if(!textEditor){
+			return;
+		}
+
+		textEditor.edit((editBuffer)=>{
+			vscode.window.showInformationMessage(`Executing ${nCommands(textEditor.selections.length)}`);
+			outputChannel.show(true);
+	
+			handleExecuteCommand(
+				textEditor,
+				(selection, command, stdout) =>{
+					outputChannel.append(`$${command}\n${stdout}\n\n`);
+					editBuffer.replace(selection, stdout);
+				},
+				(_selection, command, stderr) => {
+					outputChannel.append(`$${command}\n${stderr}\n\n`);
+					vscode.window.showErrorMessage(`Feiled execution "${command}"`);
+				},
+				(command) => `echo ${JSON.stringify(command)} | (${appToPipe})`
+			);
+		});
+	});
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -92,6 +125,9 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 	context.subscriptions.push(
 		vscode.commands.registerCommand('might-pipe.run_command', runCommand)
+	);
+	context.subscriptions.push(
+		vscode.commands.registerCommand('might-pipe.pipe_command', pipeCommand)
 	);
 }
 
