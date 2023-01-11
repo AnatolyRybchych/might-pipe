@@ -85,9 +85,9 @@ function runCommand():void{
 	);
 }
 
-function pipeCommand():void{
+function pipe():void{
 	vscode.window.showInputBox({
-		title: "Pipe to application:",
+		title: "Pipe to command:",
 	}).then((appToPipe)=>{
 		if(!appToPipe){
 			return;
@@ -119,6 +119,37 @@ function pipeCommand():void{
 	});
 }
 
+function runPipe():void{
+	vscode.window.showInputBox({
+		title: "Pipe to command:",
+	}).then((appToPipe)=>{
+		if(!appToPipe){
+			return;
+		}
+		const textEditor = vscode.window.activeTextEditor;
+		const outputChannel = vscode.window.createOutputChannel("might-pipe");
+
+		if(!textEditor){
+			return;
+		}
+
+		vscode.window.showInformationMessage(`Running ${nCommands(textEditor.selections.length)}`);
+		outputChannel.show(true);
+
+		handleExecuteCommand(
+			textEditor,
+			(_selection, command, stdout) =>{
+				outputChannel.append(`$${command}\n${stdout}\n\n`);
+			},
+			(_selection, command, stderr) => {
+				outputChannel.append(`$${command}\n${stderr}\n\n`);
+				vscode.window.showErrorMessage(`Feiled execution "${command}"`);
+			},
+			(command) => `echo ${JSON.stringify(command)} | (${appToPipe})`
+		);
+	});
+}
+
 export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.commands.registerCommand('might-pipe.execute_command', executeCommmand)
@@ -127,7 +158,10 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('might-pipe.run_command', runCommand)
 	);
 	context.subscriptions.push(
-		vscode.commands.registerCommand('might-pipe.pipe_command', pipeCommand)
+		vscode.commands.registerCommand('might-pipe.pipe', pipe)
+	);
+	context.subscriptions.push(
+		vscode.commands.registerCommand('might-pipe.run_pipe', runPipe)
 	);
 }
 

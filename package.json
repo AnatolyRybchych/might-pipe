@@ -24,8 +24,12 @@
         "title": "Run command"
       },
       {
-        "command": "might-pipe.pipe_command",
-        "title": "Pipe command"
+        "command": "might-pipe.pipe",
+        "title": "Pipe"
+      },
+      {
+        "command": "might-pipe.run_pipe",
+        "title": "Run pipe"
       }
     ]
   },
