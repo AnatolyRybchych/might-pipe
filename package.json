@@ -18,6 +18,10 @@
       {
         "command": "might-pipe.execute_commmand",
         "title": "Execute command"
+      },
+      {
+        "command": "might-pipe.run_commmand",
+        "title": "Run command"
       }
     ]
   },
