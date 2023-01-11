@@ -7,54 +7,91 @@ function nCommands(n:number):string{
 	return `${n} command${n === 1? "" : "s"}`;
 }
 
+function handleExecuteCommand(
+	textEditor:vscode.TextEditor,
+	onSuccess:(selection:vscode.Selection, command:string, stdout:string) => void,
+	onError:(selection:vscode.Selection, command:string, stderr:string) => void
+):void{
+	const decoderUtf8 = new TextDecoder(); 
+
+	textEditor.selections.forEach((selection)=>{
+		const command = textEditor.document.getText(selection).trim();
+
+		if(command === ""){
+			return;
+		}
+		
+		try {
+			const proc = childProcess.execSync(command);
+			const procOutput = decoderUtf8.decode(proc.buffer);
+
+			onSuccess(selection, command, procOutput);
+		} catch (error) {
+			onError(selection, command, `${error}`);
+		}
+	});
+	
+}
+
 function executeCommmand():void{
 	const textEditor = vscode.window.activeTextEditor;
-	const decoderUtf8 = new TextDecoder(); 
+	const outputChannel = vscode.window.createOutputChannel("might-pipe");
 	const showErrorMessage = vscode.window.showErrorMessage;
 	const showInformationMessage = vscode.window.showInformationMessage;
-	const outputChannel = vscode.window.createOutputChannel("might-pipe");
 
 	if(!textEditor){
 		return;
 	}
 
-	showInformationMessage(`Executing ${nCommands(textEditor.selections.length)}`);
-
 	textEditor.edit((editBuffer)=>{
-		textEditor.selections.forEach((selection)=>{
-			const text = textEditor.document.getText(selection).trim();
+		showInformationMessage(`Executing ${nCommands(textEditor.selections.length)}`);
+		outputChannel.show(true);
 
-			if(text === ""){
-				return;
+		handleExecuteCommand(
+			textEditor,
+			(selection, command, stdout) =>{
+				outputChannel.append(`$${command}\n\n${stdout}\n\n`);
+				editBuffer.replace(selection, stdout);
+			},
+			(_selection, command, stderr) => {
+				outputChannel.append(`$${command}\n\n${stderr}\n\n`);
+				showErrorMessage(`Feiled execution "${command}"`);
 			}
-			outputChannel.show(true);
-			outputChannel.append(`$${text}\n\n`);
-			try {
-				const proc = childProcess.execSync(text);
-				const procOutput = decoderUtf8.decode(proc.buffer).trim();
-
-				editBuffer.replace(selection, procOutput);
-
-				outputChannel.append(`${procOutput}\n\n`);
-
-			} catch (error) {
-				showErrorMessage(`Feiled execution "${text}"`);
-				outputChannel.append(`${error}\n\n`);
-			}
-		});
+		);
 	});
 }
 
 function runCommand():void{
-	
+	const textEditor = vscode.window.activeTextEditor;
+	const outputChannel = vscode.window.createOutputChannel("might-pipe");
+	const showErrorMessage = vscode.window.showErrorMessage;
+	const showInformationMessage = vscode.window.showInformationMessage;
+
+	if(!textEditor){
+		return;
+	}
+
+	showInformationMessage(`Running ${nCommands(textEditor.selections.length)}`);
+	outputChannel.show(true);
+
+	handleExecuteCommand(
+		textEditor,
+		(_selection, command, stdout) =>{
+			outputChannel.append(`$${command}\n${stdout}\n\n`);
+		},
+		(_selection, command, stderr) => {
+			outputChannel.append(`$${command}\n${stderr}\n\n`);
+			showErrorMessage(`Feiled execution "${command}"`);
+		}
+	);
 }
 
 export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
-		vscode.commands.registerCommand('might-pipe.execute_commmand', executeCommmand)
+		vscode.commands.registerCommand('might-pipe.execute_command', executeCommmand)
 	);
 	context.subscriptions.push(
-		vscode.commands.registerCommand('might-pipe.run_command', executeCommmand)
+		vscode.commands.registerCommand('might-pipe.run_command', runCommand)
 	);
 }
 

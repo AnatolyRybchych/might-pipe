@@ -16,11 +16,11 @@
   "contributes": {
     "commands": [
       {
-        "command": "might-pipe.execute_commmand",
+        "command": "might-pipe.execute_command",
         "title": "Execute command"
       },
       {
-        "command": "might-pipe.run_commmand",
+        "command": "might-pipe.run_command",
         "title": "Run command"
       }
     ]
