@@ -1,11 +1,16 @@
 {
   "name": "might-pipe",
-  "displayName": "might_pipe",
-  "description": "executing terminal commands right in a file",
   "version": "0.0.1",
+  "author": {
+    "name": "Anatoly Rybchych",
+    "email": "tol.ryb@gmail.com"
+  },
+  "publisher": "Anatoly Rybchych",
   "repository": {
     "url": "https://github.com/AnatolyRybchych/might-pipe"
   },
+  "displayName": "might_pipe",
+  "description": "executing terminal commands right in a file",
   "engines": {
     "vscode": "^1.74.0"
   },
