@@ -28,3 +28,6 @@ output of executed command`\n\n`
     Like **_Pipe_** but without modifying document
     #
 
+## Quiq install
+> wget -O might-pipe.vsix "https://github.com/AnatolyRybchych/might-pipe/blob/main/bin/might-pipe-0.0.1.vsix?raw=true" && code --install-extension ./might-pipe.vsix
+
